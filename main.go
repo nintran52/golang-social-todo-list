@@ -1,7 +1,9 @@
 package main
 
 import (
+	"g09-social-todo-list/middleware"
 	ginitem "g09-social-todo-list/module/item/transport/gin"
+	"g09-social-todo-list/module/upload"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -25,9 +27,14 @@ func main() {
 	//////////////////
 
 	r := gin.Default()
+	r.Use(middleware.Recover())
+
+	r.Static("/static", "./static")
 
 	v1 := r.Group("/v1")
 	{
+		v1.PUT("/upload", upload.Upload(db))
+
 		items := v1.Group("/items")
 		{
 			items.POST("", ginitem.CreateItem(db))

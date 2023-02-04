@@ -31,7 +31,7 @@ func (s *sqlStore) ListItem(
 		Limit(paging.Limit).
 		Find(&result).Error; err != nil {
 
-		return nil, err
+		return nil, common.ErrDB(err)
 	}
 
 	return result, nil
