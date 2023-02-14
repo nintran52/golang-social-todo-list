@@ -1,35 +1,53 @@
 package jwt
 
 import (
+	"flag"
 	"fmt"
 	"g09-social-todo-list/common"
-	"g09-social-todo-list/component/tokenprovider"
+	"g09-social-todo-list/plugin/tokenprovider"
 	"github.com/dgrijalva/jwt-go"
 	"time"
 )
 
 type jwtProvider struct {
-	prefix string
+	name   string
 	secret string
 }
 
-func NewTokenJWTProvider(prefix string, secret string) *jwtProvider {
-	return &jwtProvider{prefix: prefix, secret: secret}
+func NewJWTProvider(name string) *jwtProvider {
+	return &jwtProvider{name: name}
 }
 
-type myClaims struct {
-	Payload common.TokenPayload `json:"payload"`
-	jwt.StandardClaims
+func (p *jwtProvider) GetPrefix() string {
+	return p.Name()
 }
 
-type token struct {
-	Token   string    `json:"token"`
-	Created time.Time `json:"created"`
-	Expiry  int       `json:"expiry"`
+func (p *jwtProvider) Get() interface{} {
+	return p
 }
 
-func (t *token) GetToken() string {
-	return t.Token
+func (p *jwtProvider) Name() string {
+	return p.name
+}
+
+func (p *jwtProvider) InitFlags() {
+	flag.StringVar(&p.secret, "jwt-secret", "200Lab.io", "Secret key for generating JWT")
+}
+
+func (p *jwtProvider) Configure() error {
+	return nil
+}
+
+func (p *jwtProvider) Run() error {
+	return nil
+}
+
+func (p *jwtProvider) Stop() <-chan bool {
+	c := make(chan bool)
+	go func() {
+		c <- true
+	}()
+	return c
 }
 
 func (j *jwtProvider) SecretKey() string {
@@ -87,4 +105,19 @@ func (j *jwtProvider) Validate(myToken string) (tokenprovider.TokenPayload, erro
 
 	// return the token
 	return claims.Payload, nil
+}
+
+type myClaims struct {
+	Payload common.TokenPayload `json:"payload"`
+	jwt.StandardClaims
+}
+
+type token struct {
+	Token   string    `json:"token"`
+	Created time.Time `json:"created"`
+	Expiry  int       `json:"expiry"`
+}
+
+func (t *token) GetToken() string {
+	return t.Token
 }

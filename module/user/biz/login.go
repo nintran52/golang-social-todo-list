@@ -3,8 +3,8 @@ package biz
 import (
 	"context"
 	"g09-social-todo-list/common"
-	"g09-social-todo-list/component/tokenprovider"
 	"g09-social-todo-list/module/user/model"
+	"g09-social-todo-list/plugin/tokenprovider"
 )
 
 type LoginStorage interface {

@@ -5,13 +5,16 @@ import (
 	"g09-social-todo-list/module/item/biz"
 	"g09-social-todo-list/module/item/model"
 	"g09-social-todo-list/module/item/storage"
+	goservice "github.com/200Lab-Education/go-sdk"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"net/http"
 )
 
-func CreateItem(db *gorm.DB) func(ctx *gin.Context) {
+func CreateItem(serviceCtx goservice.ServiceContext) func(ctx *gin.Context) {
 	return func(c *gin.Context) {
+		db := serviceCtx.MustGet(common.PluginDBMain).(*gorm.DB)
+
 		var itemData model.TodoItemCreation
 
 		if err := c.ShouldBind(&itemData); err != nil {
