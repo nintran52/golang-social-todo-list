@@ -13,7 +13,7 @@ func Recover() gin.HandlerFunc {
 
 				if appErr, ok := err.(*common.AppError); ok {
 					c.AbortWithStatusJSON(appErr.StatusCode, appErr)
-					//panic(err)
+					panic(err)
 					return
 				}
 
