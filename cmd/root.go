@@ -12,6 +12,8 @@ import (
 	"g09-social-todo-list/plugin/sdkgorm"
 	"g09-social-todo-list/plugin/simple"
 	"g09-social-todo-list/plugin/tokenprovider/jwt"
+	"g09-social-todo-list/pubsub"
+	"g09-social-todo-list/subscriber"
 	goservice "github.com/200Lab-Education/go-sdk"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
@@ -27,6 +29,7 @@ func newService() goservice.Service {
 		goservice.WithVersion("1.0.0"),
 		goservice.WithInitRunnable(sdkgorm.NewGormDB("main.mysql", common.PluginDBMain)),
 		goservice.WithInitRunnable(jwt.NewJWTProvider(common.PluginJWT)),
+		goservice.WithInitRunnable(pubsub.NewPubSub(common.PluginPubSub)),
 		goservice.WithInitRunnable(simple.NewSimplePlugin("simple")),
 	)
 
@@ -89,6 +92,8 @@ var rootCmd = &cobra.Command{
 				})
 			})
 		})
+
+		_ = subscriber.NewEngine(service).Start()
 
 		if err := service.Start(); err != nil {
 			serviceLogger.Fatalln(err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"g09-social-todo-list/common"
 	"g09-social-todo-list/module/userlikeitem/model"
+	"g09-social-todo-list/pubsub"
 	"log"
 )
 
@@ -11,17 +12,26 @@ type UserLikeItemStore interface {
 	Create(ctx context.Context, data *model.Like) error
 }
 
-type IncreaseItemStorage interface {
-	IncreaseLikeCount(ctx context.Context, id int) error
-}
+//type IncreaseItemStorage interface {
+//	IncreaseLikeCount(ctx context.Context, id int) error
+//}
 
 type userLikeItemBiz struct {
-	store     UserLikeItemStore
-	itemStore IncreaseItemStorage
+	store UserLikeItemStore
+	//itemStore IncreaseItemStorage
+	ps pubsub.PubSub
 }
 
-func NewUserLikeItemBiz(store UserLikeItemStore, itemStore IncreaseItemStorage) *userLikeItemBiz {
-	return &userLikeItemBiz{store: store, itemStore: itemStore}
+func NewUserLikeItemBiz(
+	store UserLikeItemStore,
+	//itemStore IncreaseItemStorage,
+	ps pubsub.PubSub,
+) *userLikeItemBiz {
+	return &userLikeItemBiz{
+		store: store,
+		//itemStore: itemStore,
+		ps: ps,
+	}
 }
 
 func (biz *userLikeItemBiz) LikeItem(ctx context.Context, data *model.Like) error {
@@ -29,13 +39,21 @@ func (biz *userLikeItemBiz) LikeItem(ctx context.Context, data *model.Like) erro
 		return model.ErrCannotLikeItem(err)
 	}
 
-	go func() {
-		defer common.Recovery()
+	if err := biz.ps.Publish(ctx, common.TopicUserLikedItem, pubsub.NewMessage(data)); err != nil {
+		log.Println(err)
+	}
 
-		if err := biz.itemStore.IncreaseLikeCount(ctx, data.ItemId); err != nil {
-			log.Println(err)
-		}
-	}()
+	//job := asyncjob.NewJob(func(ctx context.Context) error {
+	//	if err := biz.itemStore.IncreaseLikeCount(ctx, data.ItemId); err != nil {
+	//		return err
+	//	}
+	//
+	//	return nil
+	//})
+	//
+	//if err := asyncjob.NewGroup(true, job).Run(ctx); err != nil {
+	//	log.Println(err)
+	//}
 
 	return nil
 }

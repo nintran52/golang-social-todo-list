@@ -16,6 +16,10 @@ const (
 const (
 	PluginDBMain = "mysql"
 	PluginJWT    = "jwt"
+	PluginPubSub = "pubsub"
+
+	TopicUserLikedItem   = "TopicUserLikedItem"
+	TopicUserUnlikedItem = "TopicUserUnlikedItem"
 )
 
 func Recovery() {
