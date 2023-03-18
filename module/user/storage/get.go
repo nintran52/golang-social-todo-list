@@ -4,10 +4,14 @@ import (
 	"context"
 	"g09-social-todo-list/common"
 	"g09-social-todo-list/module/user/model"
+	"go.opencensus.io/trace"
 	"gorm.io/gorm"
 )
 
 func (s *sqlStore) FindUser(ctx context.Context, conditions map[string]interface{}, moreInfo ...string) (*model.User, error) {
+	_, span := trace.StartSpan(ctx, "user.storage.find")
+	defer span.End()
+
 	db := s.db.Table(model.User{}.TableName())
 
 	for i := range moreInfo {

@@ -3,12 +3,14 @@ package cmd
 import (
 	"fmt"
 	"g09-social-todo-list/common"
+	"g09-social-todo-list/memcache"
 	"g09-social-todo-list/middleware"
 	ginitem "g09-social-todo-list/module/item/transport/gin"
 	"g09-social-todo-list/module/upload"
 	userstorage "g09-social-todo-list/module/user/storage"
 	ginuser "g09-social-todo-list/module/user/transport/gin"
 	ginuserlikeitem "g09-social-todo-list/module/userlikeitem/transport/gin"
+	"g09-social-todo-list/plugin/appredis"
 	"g09-social-todo-list/plugin/rpccaller"
 	"g09-social-todo-list/plugin/sdkgorm"
 	"g09-social-todo-list/plugin/simple"
@@ -18,6 +20,8 @@ import (
 	goservice "github.com/200Lab-Education/go-sdk"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
+	"go.opencensus.io/exporter/jaeger"
+	"go.opencensus.io/trace"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
@@ -32,6 +36,7 @@ func newService() goservice.Service {
 		goservice.WithInitRunnable(jwt.NewJWTProvider(common.PluginJWT)),
 		goservice.WithInitRunnable(pubsub.NewPubSub(common.PluginPubSub)),
 		goservice.WithInitRunnable(rpccaller.NewApiItemCaller(common.PluginItemAPI)),
+		goservice.WithInitRunnable(appredis.NewRedisDB("redis", common.PluginRedis)),
 		goservice.WithInitRunnable(simple.NewSimplePlugin("simple")),
 	)
 
@@ -63,8 +68,9 @@ var rootCmd = &cobra.Command{
 			db := service.MustGet(common.PluginDBMain).(*gorm.DB)
 
 			authStore := userstorage.NewSQLStore(db)
+			authCache := memcache.NewUserCaching(memcache.NewRedisCache(service), authStore)
 
-			middlewareAuth := middleware.RequiredAuth(authStore, service)
+			middlewareAuth := middleware.RequiredAuth(authCache, service)
 
 			v1 := engine.Group("/v1")
 			{
@@ -99,6 +105,18 @@ var rootCmd = &cobra.Command{
 				})
 			})
 		})
+
+		je, err := jaeger.NewExporter(jaeger.Options{
+			AgentEndpoint: "localhost:6831",
+			Process:       jaeger.Process{ServiceName: "Todo-List-Service"},
+		})
+
+		if err != nil {
+			log.Println(err)
+		}
+
+		trace.RegisterExporter(je)
+		trace.ApplyConfig(trace.Config{DefaultSampler: trace.ProbabilitySampler(0.001)})
 
 		_ = subscriber.NewEngine(service).Start()
 
