@@ -3,13 +3,16 @@ package cmd
 import (
 	"fmt"
 	"g09-social-todo-list/common"
+	"g09-social-todo-list/demogrpc/demo"
 	"g09-social-todo-list/memcache"
 	"g09-social-todo-list/middleware"
 	ginitem "g09-social-todo-list/module/item/transport/gin"
 	"g09-social-todo-list/module/upload"
 	userstorage "g09-social-todo-list/module/user/storage"
 	ginuser "g09-social-todo-list/module/user/transport/gin"
+	"g09-social-todo-list/module/userlikeitem/storage"
 	ginuserlikeitem "g09-social-todo-list/module/userlikeitem/transport/gin"
+	"g09-social-todo-list/module/userlikeitem/transport/rpc"
 	"g09-social-todo-list/plugin/appredis"
 	"g09-social-todo-list/plugin/rpccaller"
 	"g09-social-todo-list/plugin/sdkgorm"
@@ -22,8 +25,11 @@ import (
 	"github.com/spf13/cobra"
 	"go.opencensus.io/exporter/jaeger"
 	"go.opencensus.io/trace"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"gorm.io/gorm"
 	"log"
+	"net"
 	"net/http"
 	"os"
 )
@@ -55,6 +61,38 @@ var rootCmd = &cobra.Command{
 			serviceLogger.Fatalln(err)
 		}
 
+		// Set up gRPC
+		address := "0.0.0.0:50051"
+		lis, err := net.Listen("tcp", address)
+
+		if err != nil {
+			log.Fatalf("Error %v", err)
+		}
+		fmt.Printf("Server is listening on %v ...", address)
+
+		s := grpc.NewServer()
+
+		db := service.MustGet(common.PluginDBMain).(*gorm.DB)
+
+		store := storage.NewSQLStore(db)
+		demo.RegisterItemLikeServiceServer(s, rpc.NewRPCService(store))
+
+		go func() {
+			if err := s.Serve(lis); err != nil {
+				log.Fatalln(err)
+			}
+		}()
+
+		opts := grpc.WithTransportCredentials(insecure.NewCredentials())
+
+		cc, err := grpc.Dial("localhost:50051", opts)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		client := demo.NewItemLikeServiceClient(cc)
+		//////
+
 		service.HTTPServer().AddHandler(func(engine *gin.Engine) {
 			engine.Use(middleware.Recover())
 
@@ -83,7 +121,7 @@ var rootCmd = &cobra.Command{
 				items := v1.Group("/items", middlewareAuth)
 				{
 					items.POST("", ginitem.CreateItem(service))
-					items.GET("", ginitem.ListItem(service))
+					items.GET("", ginitem.ListItem(service, client))
 					items.GET("/:id", ginitem.GetItem(service))
 					items.PATCH("/:id", ginitem.UpdateItem(service))
 					items.DELETE("/:id", ginitem.DeleteItem(service))
