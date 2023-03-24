@@ -18,6 +18,15 @@ type Message struct {
 	channel   Topic // can be ignore
 	data      interface{}
 	createdAt time.Time
+	ackFunc   func() error
+}
+
+func (evt *Message) SetAckFunc(f func() error) {
+	evt.ackFunc = f
+}
+
+func (evt *Message) Ack() error {
+	return evt.ackFunc()
 }
 
 func NewMessage(data interface{}) *Message {

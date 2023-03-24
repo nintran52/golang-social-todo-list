@@ -17,9 +17,13 @@ func PushNotificationAfterUserLikeItem(serviceCtx goservice.ServiceContext) subJ
 		Hld: func(ctx context.Context, message *pubsub.Message) error {
 			//db := serviceCtx.MustGet(common.PluginDBMain).(*gorm.DB)
 
-			data := message.Data().(HasUserId)
+			//data := message.Data().(HasUserId)
 
-			log.Println("Push notification to user id:", data.GetUserId())
+			data := message.Data().(map[string]interface{})
+
+			userId := data["user_id"].(float64)
+
+			log.Println("Push notification to user id:", int(userId))
 
 			return nil
 		},

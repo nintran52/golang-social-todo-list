@@ -14,11 +14,11 @@ import (
 	ginuserlikeitem "g09-social-todo-list/module/userlikeitem/transport/gin"
 	"g09-social-todo-list/module/userlikeitem/transport/rpc"
 	"g09-social-todo-list/plugin/appredis"
+	"g09-social-todo-list/plugin/nats"
 	"g09-social-todo-list/plugin/rpccaller"
 	"g09-social-todo-list/plugin/sdkgorm"
 	"g09-social-todo-list/plugin/simple"
 	"g09-social-todo-list/plugin/tokenprovider/jwt"
-	"g09-social-todo-list/pubsub"
 	"g09-social-todo-list/subscriber"
 	goservice "github.com/200Lab-Education/go-sdk"
 	"github.com/gin-gonic/gin"
@@ -40,7 +40,8 @@ func newService() goservice.Service {
 		goservice.WithVersion("1.0.0"),
 		goservice.WithInitRunnable(sdkgorm.NewGormDB("main.mysql", common.PluginDBMain)),
 		goservice.WithInitRunnable(jwt.NewJWTProvider(common.PluginJWT)),
-		goservice.WithInitRunnable(pubsub.NewPubSub(common.PluginPubSub)),
+		//goservice.WithInitRunnable(pubsub.NewPubSub(common.PluginPubSub)),
+		goservice.WithInitRunnable(nats.NewNATS(common.PluginPubSub)),
 		goservice.WithInitRunnable(rpccaller.NewApiItemCaller(common.PluginItemAPI)),
 		goservice.WithInitRunnable(appredis.NewRedisDB("redis", common.PluginRedis)),
 		goservice.WithInitRunnable(simple.NewSimplePlugin("simple")),

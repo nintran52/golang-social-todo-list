@@ -15,9 +15,17 @@ func DecreaseLikeCountAfterUserUnlikeItem(serviceCtx goservice.ServiceContext) s
 		Hld: func(ctx context.Context, message *pubsub.Message) error {
 			db := serviceCtx.MustGet(common.PluginDBMain).(*gorm.DB)
 
-			data := message.Data().(HasItemId)
+			//data := message.Data().(HasItemId)
+			data := message.Data().(map[string]interface{})
 
-			return storage.NewSQLStore(db).DecreaseLikeCount(ctx, data.GetItemId())
+			itemId := data["item_id"].(float64)
+
+			if err := storage.NewSQLStore(db).DecreaseLikeCount(ctx, int(itemId)); err != nil {
+				return err
+			}
+
+			_ = message.Ack()
+			return nil
 		},
 	}
 }
